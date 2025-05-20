@@ -1,0 +1,788 @@
+:: StoryTitle
+Independent Project - Adventure Text-Based Game
+
+
+:: StoryData
+{
+  "ifid": "BC459842-74AF-47BB-B16C-DBBA2D69C4C9",
+  "format": "SugarCube",
+  "format-version": "2.37.3",
+  "start": "Start",
+  "zoom": 1
+}
+
+
+:: Alchemist {"position":"550,600","size":"100,100"}
+The alchemist shares ancient knowledge...  
+<<set $random to random(1, 100)>>  
+<<if $random <= 60>>  
+    You learn a valuable secret!  
+    <<set $player.inventory.push("Ancient Secret")>>  
+<<else>>  
+    His potion experiment goes wrong!  
+    <<set $player.health -= 15>>  
+<</if>>
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+<<checkPlayerHealth>>
+
+
+:: BuyItem {"position":"462.5,850","size":"100,100"}
+<<if $selectedItem and $buyItems[$selectedItem]>>  
+    <<set $buyPrice to $buyItems[$selectedItem].price>>  
+    <<if $player.gold >= $buyPrice>>  
+        <<set $player.gold -= $buyPrice>>  
+        <<set $player.inventory.push($selectedItem)>>  
+        You purchased $selectedItem! ($buyItems[$selectedItem].desc)  
+    <<else>>  
+        You cannot afford this item. It costs $buyPrice gold, but you only have $player.gold gold.  
+    <</if>>  
+<<else>>  
+    Error: Item not found.  
+<</if>>
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+[[Continue your journey->Merchant]]
+
+
+:: Cave {"position":"525,200","size":"100,100"}
+The cave is dark, but you press forward...  
+<<set $random to random(1, 100)>>  
+<<if $random <= 50>>  
+    You find an ancient sword!  
+    <<set $player.inventory.push("Ancient Sword")>>  
+<<else>>  
+    A bat swarm startles you!  
+    <<set $player.health -= 20>>  
+<</if>>
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+<<checkPlayerHealth>>
+
+
+:: CombatAttack {"position":"0,375","size":"100,100"}
+<<set $combatLog = []>>
+<<set $damage = random(10, 20)>>
+<<if $player.inventory.includes("Ancient Sword")>>
+    <<set $damage += 10>>
+    <<set $combatLog.push("Ancient Sword boosts damage by 10!")>>
+<</if>>
+<<if $player.inventory.includes("Ethereal Blade")>>
+    <<set $damage += 15>>
+    <<set $combatLog.push("Ethereal Blade boosts damage by 15!")>>
+<</if>>
+<<if $player.inventory.includes("Fire Scroll")>>
+    <<set $damage += 15>>
+    <<set $player.inventory = $player.inventory.filter(item => item !== "Fire Scroll")>>
+    <<set $combatLog.push("You used the Fire Scroll, dealing 15 extra damage!")>>
+<</if>>
+<<if $player.inventory.includes("Thunder Staff")>>
+    <<set $damage += 20>>
+    <<set $player.inventory = $player.inventory.filter(item => item !== "Thunder Staff")>>
+    <<set $combatLog.push("You used the Thunder Staff, dealing 20 extra damage!")>>
+<</if>>
+<<set $monsterHealth -= $damage>>
+<<set $combatLog.push("You strike the " + $monster.name + " for " + $damage + " damage!")>>
+
+<<if $monsterHealth <= 0>>
+    You defeated the $monster.name!<br>
+    <<set $player.inventory.push($monster.loot)>>
+    <<set $goldReward = random($monster.goldMin, $monster.goldMax)>>
+    <<if $player.inventory.includes("Lucky Ring")>>
+        <<set $goldReward += 10>>
+        <<set $combatLog.push("Lucky Ring increases gold drop by 10!")>>
+    <</if>>
+    <<set $player.gold += $goldReward>>
+    You found $monster.loot and $goldReward gold!<br>
+    <<set $random = random(1, 100)>>
+    <<if $random <= 10>>
+        <<set $rareLoot = either("Mythical Gem", "Ancient Relic", "Dragon Scale", "Phoenix Feather", "Cursed Talisman", "Moonstone", "Frost Crystal")>>
+        <<set $player.inventory.push($rareLoot)>>
+        The monster dropped a rare $rareLoot!<br>
+    <</if>>
+    <<showCombatLog>>
+    [[Continue->MainMenu]]
+<<else>>
+    <<set $monsterDamage = random(5, 15)>>
+    <<if $player.inventory.includes("Shield")>>
+        <<set $monsterDamage = Math.max(0, $monsterDamage - 5)>>
+        <<set $combatLog.push("Shield reduces damage by 5!")>>
+    <</if>>
+    <<if $player.inventory.includes("Magic Cloak")>>
+        <<set $monsterDamage = Math.max(0, $monsterDamage - 10)>>
+        <<set $combatLog.push("Magic Cloak reduces damage by 10!")>>
+    <</if>>
+    <<set $player.health -= $monsterDamage>>
+    <<set $combatLog.push("The " + $monster.name + " hits you for " + $monsterDamage + " damage!")>>
+    <<showCombatLog>>
+    <<showRemainingEffects>>
+    <<checkPlayerHealth>>
+    [[Continue fighting->MonsterEncounter]]
+    [[Run away->MainMenu]]
+<</if>>
+
+
+:: CombatHeal {"position":"125,375","size":"100,100"}
+<<set $combatLog = []>>
+<<if $player.inventory.includes("Healing Potion")>>
+    <<set $healing = random(30, 50)>>
+    <<set $player.health = Math.min($player.maxHealth, $player.health + $healing)>>
+    <<set $player.inventory = $player.inventory.filter(item => item !== "Healing Potion")>>
+    <<set $combatLog.push("You heal for " + $healing + " health!")>>
+<<else>>
+    <<set $combatLog.push("You don't have any healing potions!")>>
+<</if>>
+<<if $monsterHealth > 0>>
+    <<set $monsterDamage = random(5, 15)>>
+    <<if $player.inventory.includes("Shield")>>
+        <<set $monsterDamage = Math.max(0, $monsterDamage - 5)>>
+        <<set $combatLog.push("Shield reduces damage by 5!")>>
+    <</if>>
+    <<if $player.inventory.includes("Magic Cloak")>>
+        <<set $monsterDamage = Math.max(0, $monsterDamage - 10)>>
+        <<set $combatLog.push("Magic Cloak reduces damage by 10!")>>
+    <</if>>
+    <<set $player.health -= $monsterDamage>>
+    <<set $combatLog.push("The " + $monster.name + " hits you for " + $monsterDamage + " damage!")>>
+<</if>>
+<<showCombatLog>>
+<<showRemainingEffects>>
+<<checkPlayerHealth>>
+[[Continue fighting->MonsterEncounter]]
+[[Run away->MainMenu]]
+
+
+:: CombatRun {"position":"250,375","size":"100,100"}
+<<set $combatLog = []>>
+<<set $fleeChance = 50>>
+<<if $player.inventory.includes("Traveler's Boots")>>
+    <<set $fleeChance += 10>>
+    <<set $combatLog.push("Traveler's Boots increase your flee chance by 10%!")>>
+<</if>>
+<<set $random = random(1, 100)>>
+<<if $random <= $fleeChance>>
+    <<set $combatLog.push("You successfully flee!")>>
+    <<showCombatLog>>
+    [[Continue->ForestPath]]
+<<else>>
+    <<set $combatLog.push("You fail to escape!")>>
+    <<set $monsterDamage = random(5, 15)>>
+    <<if $player.inventory.includes("Shield")>>
+        <<set $monsterDamage = Math.max(0, $monsterDamage - 5)>>
+        <<set $combatLog.push("Shield reduces damage by 5!")>>
+    <</if>>
+    <<if $player.inventory.includes("Magic Cloak")>>
+        <<set $monsterDamage = Math.max(0, $monsterDamage - 5)>>
+        <<set $combatLog.push("Magic Cloak reduces damage by 5!")>>
+    <</if>>
+    <<set $player.health -= $monsterDamage>>
+    <<set $combatLog.push("The " + $monster.name + " hits you for " + $monsterDamage + " damage!")>>
+    <<showCombatLog>>
+    <<showRemainingEffects>>
+    <<checkPlayerHealth>>
+    [[Continue fighting->MonsterEncounter]]
+    [[Run away->ForestPath]]
+<</if>>
+
+
+:: Crypt {"position":"750,525","size":"100,100"}
+The ancient crypt looms before you...  
+Cold air whispers from its depths...
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+<<if $player.health < 50>>  
+    You're too wounded to enter safely...  
+    [[Return->MainMenu]]  
+<<else>>  
+    * [[Descend into the darkness->CryptDescend]]  
+    * [[Search for another entrance->CryptSecret]]  
+    * [[Turn back->CryptBack]]  
+<</if>>
+
+
+:: CryptBack {"position":"1000,650","size":"100,100"}
+Perhaps wisdom is the better part of valor...  
+<<set $player.health = Math.min($player.maxHealth, $player.health + 10)>>
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+[[Continue->Crypt]]
+
+
+:: CryptDescend {"position":"750,650","size":"100,100"}
+You venture into the crypt...  
+<<if $player.inventory.includes("Ancient Sword")>>  
+    The sword glows, revealing a hidden treasure!  
+    <<set $player.gold += 100>>  
+    You found 100 gold!  
+<<else>>  
+    A shadow creature attacks!  
+    <<set $player.health -= 30>>  
+<</if>>
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+<<checkPlayerHealth>>
+
+
+:: CryptSecret {"position":"875,650","size":"100,100"}
+You discover a secret entrance...  
+<<if $player.inventory.includes("Ancient Secret")>>  
+    Your knowledge reveals a powerful artifact!  
+    <<set $player.inventory.push("Mystic Amulet")>>  
+    You found a Mystic Amulet!  
+<<else>>  
+    You trigger a trap!  
+    <<set $player.health -= 25>>  
+<</if>>
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+<<checkPlayerHealth>>
+
+
+:: ForestPath {"position":"400,225","size":"100,100"}
+You venture deep into the Whispering Woods...  
+The trees seem to murmur ancient secrets...
+
+<<set $random to random(1, 100)>>  
+<<if $random <= 40>>  
+    <<set $monsterIndex to random(0, $monsters.length - 1)>>  
+    <<set $monster to $monsters[$monsterIndex]>>  
+    <<set $monsterHealth to $monster.health>>  
+    [[A $monster.name appears!->MonsterEncounter]]  
+<<else>>  
+    Choose your path:  
+    * [[Investigate a strange glowing mushroom->Mushroom]]  
+    * [[Follow the sound of running water->Waterfall]]  
+    * [[Enter a dark cave->Cave]]  
+<</if>>
+
+
+:: GameOver {"position":"675,150","size":"100,100"}
+Your journey has come to an end...
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+[[Try again->Start][$player.health = 100; $player.maxHealth = 100; $player.gold = 0; $player.inventory = []]]
+
+
+:: HauntedRuins {"position":"100,150","size":"100,100"}
+You approach the eerie Haunted Ruins...  
+The air grows cold as you step closer...
+
+<<set $random to random(1, 100)>>  
+<<if $random <= 60>>  
+    A ghostly figure emerges!  
+    <<set $monster = { name: "Spectral Guardian", health: 60, loot: "Ethereal Shard", goldMin: 40, goldMax: 80 }>>  
+    <<set $monsterHealth to $monster.health>>  
+    [[A Spectral Guardian appears!->MonsterEncounter]]  
+<<else>>  
+    You find a hidden cache!  
+    <<set $player.gold += 75>>  
+    <<set $cacheLoot to either("Ethereal Shard", "Cursed Talisman", "Moonstone", "Frost Crystal")>>  
+    <<set $player.inventory.push($cacheLoot)>>  
+    You found 75 gold and a $cacheLoot!  
+
+    Health: $player.health / $player.maxHealth  
+    <<showInventory>>  
+
+    [[Continue->MainMenu]]  
+<</if>>
+
+
+:: Macros {"position":"125,0","size":"100,100"}
+<<macro "showInventory">>
+    **Your Inventory:**  
+    <<if $player.inventory.length > 0>>  
+        <<for $item range $player.inventory>>  
+            <<set $desc to ($buyItems[$item]?.desc || $sellItems[$item]?.desc || "No description available.")>>  
+            - $item: $desc  
+        <</for>>  
+    <<else>>  
+        Your inventory is empty.  
+    <</if>>  
+    Gold: $player.gold
+<</macro>>
+
+<<macro "showActiveEffects" "label">>
+    <<set $effects = []>>  
+    <<if $player.inventory.includes("Ancient Sword")>>  
+        <<set $effects.push("Ancient Sword will add 10 damage to your attack.")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Ethereal Blade")>>  
+        <<set $effects.push("Ethereal Blade will add 15 damage to your attack.")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Fire Scroll")>>  
+        <<set $effects.push("Fire Scroll will add 15 damage to your next attack (one-time use).")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Thunder Staff")>>  
+        <<set $effects.push("Thunder Staff will add 20 damage to your next attack (one-time use).")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Shield")>>  
+        <<set $effects.push("Shield will reduce damage taken by 5.")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Magic Cloak")>>  
+        <<set $effects.push("Magic Cloak will reduce damage taken by " + (State.active.passage === "CombatRun" ? "5 if you fail to escape." : "10."))>>  
+    <</if>>  
+    <<if $player.inventory.includes("Traveler's Boots")>>  
+        <<set $effects.push("Traveler's Boots increase your flee chance by 10%.")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Lucky Ring")>>  
+        <<set $effects.push("Lucky Ring will increase gold drops by 10 if you win.")>>  
+    <</if>>  
+    **$args[0]:**  
+    <<if $effects.length > 0>>  
+        <<for $effect range $effects>>  
+            - $effect  
+        <</for>>  
+    <<else>>  
+        No active effects.  
+    <</if>>
+<</macro>>
+
+<<macro "showRemainingEffects">>
+    **Remaining Active Effects:**  
+    <<set $remainingEffects = []>>  
+    <<if $player.inventory.includes("Ancient Sword")>>  
+        <<set $remainingEffects.push("Ancient Sword will add 10 damage to your attack.")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Ethereal Blade")>>  
+        <<set $remainingEffects.push("Ethereal Blade will add 15 damage to your attack.")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Fire Scroll")>>  
+        <<set $remainingEffects.push("Fire Scroll will add 15 damage to your next attack (one-time use).")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Thunder Staff")>>  
+        <<set $remainingEffects.push("Thunder Staff will add 20 damage to your next attack (one-time use).")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Shield")>>  
+        <<set $remainingEffects.push("Shield will reduce damage taken by 5.")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Magic Cloak")>>  
+        <<set $remainingEffects.push("Magic Cloak will reduce damage taken by " + (State.active.passage === "CombatRun" ? "5 if you fail to escape." : "10."))>>  
+    <</if>>  
+    <<if $player.inventory.includes("Traveler's Boots")>>  
+        <<set $remainingEffects.push("Traveler's Boots increase your flee chance by 10%.")>>  
+    <</if>>  
+    <<if $player.inventory.includes("Lucky Ring")>>  
+        <<set $remainingEffects.push("Lucky Ring will increase gold drops by 10 if you win.")>>  
+    <</if>>  
+    <<if $remainingEffects.length > 0>>  
+        <<for $effect range $remainingEffects>>  
+            - $effect  
+        <</for>>  
+    <<else>>  
+        No active effects remaining.  
+    <</if>>
+<</macro>>
+
+<<macro "showCombatLog">>
+    <div id="combat-log">  
+        **Combat Log:**  
+        <<for $log range $combatLog>>  
+            - $log  
+        <</for>>  
+    </div>
+<</macro>>
+
+<<macro "checkPlayerHealth">>
+    <<if $player.health <= 0>>  
+        [[Your journey ends...->GameOver]]  
+    <<else>>  
+        <<if $monsterHealth <= 0>>  
+            [[Continue->MainMenu]]  
+        <<else>>  
+            [[Continue fighting->MonsterEncounter]]  
+        <</if>>  
+    <</if>>
+<</macro>>
+
+
+:: MainMenu {"position":"675,400","size":"100,100"}
+<<if $player.health <= 0>>  
+    <<goto "GameOver">>  
+<</if>>
+
+<<if $player.inventory.includes("Mystic Orb")>>  
+    <<set $player.maxHealth += 20>>  
+    <<set $player.health = Math.min($player.maxHealth, $player.health + 20)>>  
+    <<set $player.inventory = $player.inventory.filter(item => item !== "Mystic Orb")>>  
+    You used the Mystic Orb! Your max health increased by 20, and you healed 20 health.  
+<</if>>
+
+Health: $player.health / $player.maxHealth<br>
+Gold: $player.gold<br>
+<<showInventory>>
+
+Where would you like to go?  
+* [[Enter the Whispering Woods->ForestPath]]  
+* [[Visit Misthaven Village->Village]]  
+* [[Explore the Ancient Crypt->Crypt]]  
+* [[Investigate the Haunted Ruins->HauntedRuins]]  
+* [[Rest and heal (costs 20 gold)->Rest]]
+
+
+:: Merchant {"position":"400,600","size":"100,100"}
+The merchant greets you with a sly smile. "Welcome, traveler! What can I do for you?"
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+**Buy Items:
+<<for $item, $details range $buyItems>>  
+    - $item ($details.price gold): $details.desc  
+    <<if $player.gold >= $details.price and !$player.inventory.includes($item)>>  
+        [[Buy->BuyItem][$selectedItem to $item]]  
+    <<elseif $player.inventory.includes($item)>>  
+        (Already owned)  
+    <<else>>  
+        (Not enough gold)  
+    <</if>>  
+<</for>>
+
+**Sell Items: 
+<<if $player.inventory.length > 0>>  
+    <<for $item range $player.inventory>>  
+        <<set $price to $sellItems[$item]?.price || 0>>  
+        <<if $price > 0>>  
+            - $item: $sellItems[$item].desc  
+            [[Sell for $price gold->SellItem][$selectedItem to $item]]  
+        <</if>>  
+    <</for>>  
+<<else>>  
+    You have nothing to sell.  
+<</if>>
+
+[[Leave shop->Village]]
+
+
+:: MonsterEncounter {"position":"250,250","size":"100,100"}
+A $monster.name appears!<br>
+<b>Monster Health:</b> $monsterHealth | <b>Your Health:</b> $player.health<br>
+<<showInventory>>
+<<showActiveEffects>>
+<<showCombatLog>>
+<<showRemainingEffects>>
+
+<b>Actions:</b>
+* [[Attack->CombatAttack]]
+* [[Use Healing Potion->CombatHeal]]
+* [[Try to Run->CombatRun]]
+
+
+:: Mushroom {"position":"400,350","size":"100,100"}
+The mushroom gleams with an otherworldly light...  
+<<set $random to random(1, 100)>>  
+<<if $random <= 70>>  
+    You carefully harvest it. It might be useful later.  
+    <<set $player.inventory.push("Glowing Mushroom")>>  
+<<else>>  
+    As you touch it, you feel slightly dizzy...  
+    <<set $player.health -= 10>>  
+<</if>>
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+<<checkPlayerHealth>>
+
+
+:: Rest {"position":"800,250","size":"100,100"}
+<<if $player.gold >= 20>>  
+    <<set $player.gold -= 20>>  
+    <<set $healing to random(20, 40)>>  
+    <<set $player.health = Math.min($player.maxHealth, $player.health + $healing)>>  
+    You rest and recover $healing health.  
+<<else>>  
+    You don't have enough gold to rest here.  
+<</if>>
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+[[Continue->MainMenu]]
+
+
+:: SellItem {"position":"337.5,850","size":"100,100"}
+<<if $selectedItem and $sellItems[$selectedItem]>>  
+    <<set $sellPrice to $sellItems[$selectedItem].price>>  
+    <<set $player.inventory = $player.inventory.filter(item => item !== $selectedItem)>>  
+    <<set $player.gold += $sellPrice>>  
+    Sold $selectedItem for $sellPrice gold!  
+<<else>>  
+    Error: Item not found.  
+<</if>>
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+[[Continue your journey->Merchant]]
+
+
+:: Start {"position":"675,275","size":"100,100"}
+Welcome to the Forgotten Kingdom!
+
+You awaken in a mysterious land, your memories hazy...
+
+Health: $player.health / $player.maxHealth<br>
+<<showInventory>>
+
+[[Begin your journey->MainMenu]]
+
+**Note: Use the "Back" button in the sidebar to navigate; avoid browser back/forward buttons to maintain game integrity.
+
+
+:: StoryInit {"position":"400,0","size":"100,100"}
+<<set $player = {
+    health: 100,
+    maxHealth: 100,
+    gold: 0,
+    inventory: []
+}>>
+<<set $combatLog = []>>
+<<set $activeEffects = []>>
+<<set $remainingEffects = []>>
+
+<<set $monsters = [
+    { name: "Shadow Wraith", health: 50, loot: "Spirit Essence", goldMin: 20, goldMax: 40 },
+    { name: "Forest Troll", health: 70, loot: "Troll Hide", goldMin: 30, goldMax: 60 },
+    { name: "Corrupted Wolf", health: 40, loot: "Wolf Fang", goldMin: 15, goldMax: 35 }
+]>>
+<<set $monster = null>>
+<<set $monsterHealth = 0>>
+
+<<set $selectedItem = "">>
+<<set $buyItems = {  
+    "Shield": { price: 30, desc: "Reduces damage taken by 5 in combat." },  
+    "Healing Potion": { price: 25, desc: "Heals 30-50 health when used in combat." },  
+    "Magic Cloak": { price: 40, desc: "Reduces damage taken by 10 in combat (5 when running)." },  
+    "Fire Scroll": { price: 50, desc: "Adds 15 damage to your next attack. One-time use." },  
+    "Mystic Orb": { price: 60, desc: "Increases max health by 20 and heals 20 health. One-time use." },  
+    "Ethereal Blade": { price: 70, desc: "Increases attack damage by 15 in combat." },  
+    "Lucky Ring": { price: 45, desc: "Increases gold drops from monsters by 10." },  
+    "Thunder Staff": { price: 80, desc: "Adds 20 damage to your next attack. One-time use." },  
+    "Traveler's Boots": { price: 35, desc: "Increases your chance to flee from combat by 10%." },
+    "Ancient Sword": { price: 50, desc: "Adds 10 damage to attacks." }
+}>>
+<<set $sellItems = {  
+    "Spirit Essence": { price: 25, desc: "A glowing essence from a Shadow Wraith. Useful for crafting potions." },  
+    "Troll Hide": { price: 15, desc: "Tough hide from a Forest Troll. Can be used for armor crafting." },  
+    "Wolf Fang": { price: 10, desc: "A sharp fang from a Corrupted Wolf. Often used in rituals." },  
+    "Glowing Mushroom": { price: 5, desc: "A bioluminescent mushroom. The tavern keeper might be interested." },  
+    "Ancient Secret": { price: 30, desc: "Knowledge gained from the alchemist. Holds mystical value." },  
+    "Shield": { price: 20, desc: "A sturdy shield that reduces damage taken by 5 in combat." },  
+    "Mythical Gem": { price: 40, desc: "A rare gem dropped by monsters. Sought after by collectors." },  
+    "Ancient Relic": { price: 35, desc: "An artifact from ancient times. Holds historical significance." },  
+    "Mystic Amulet": { price: 50, desc: "A powerful amulet found in the crypt. Radiates magical energy." },  
+    "Dragon Scale": { price: 45, desc: "A scale from a mythical dragon. Extremely valuable and durable." },  
+    "Phoenix Feather": { price: 60, desc: "A feather from a phoenix. Said to have healing properties." },  
+    "Ethereal Shard": { price: 55, desc: "A shard from the Haunted Ruins. Glows with ghostly energy." },  
+    "Cursed Talisman": { price: 70, desc: "A talisman found in the ruins. Cursed, but valuable to the right buyer." },  
+    "Moonstone": { price: 65, desc: "A stone that glows under moonlight. Prized by alchemists." },  
+    "Frost Crystal": { price: 50, desc: "A crystal imbued with ice magic. Feels cold to the touch." },
+    "Ancient Sword": { price: 30, desc: "A sword that adds 10 damage to attacks." }
+}>>
+
+
+:: StoryMenu {"position":"525,0","size":"100,100"}
+Stats: Health: $player.health / $player.maxHealth<br>
+Gold: $player.gold<br>
+<<showInventory>>
+
+
+
+:: Tavern {"position":"275,525","size":"100,100"}
+The tavern is warm and welcoming...  
+<<if $player.inventory.includes("Glowing Mushroom")>>  
+    The innkeeper is fascinated by your mushroom...  
+    He trades you a healing potion for it!  
+    <<set $player.inventory = $player.inventory.filter(item => item !== "Glowing Mushroom")>>  
+    <<set $player.inventory.push("Healing Potion")>>  
+<<else>>  
+    You hear interesting rumors about the crypt...  
+<</if>>
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+[[Continue your journey->Village]]
+
+
+:: Village {"position":"450,475","size":"100,100"}
+You arrive at the village of Misthaven...  
+The locals eye you with curiosity...
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+* [[Visit the local tavern->Tavern]]  
+* [[Trade with the merchant->Merchant]]  
+* [[Speak with the mysterious alchemist->Alchemist]]
+* [[Continue your journey->MainMenu]]
+
+
+:: Waterfall {"position":"275,100","size":"100,100"}
+You discover a pristine waterfall...  
+Behind it glitters a small chest!  
+<<set $player.gold += 50>>  
+You found 50 gold!
+
+Health: $player.health / $player.maxHealth  
+<<showInventory>>
+
+[[Continue your journey->MainMenu]]
+
+
+:: Widgets {"position":"675,0","size":"100,100"}
+<<widget "showCombatLog">>
+<<if $combatLog and $combatLog.length > 0>>
+    <div class="combat-log">
+        <b>Combat Log:</b><br>
+        <<for _entry range $combatLog>>
+            • _entry<br>
+        <</for>>
+    </div>
+<<else>>
+    <i>No combat log entries.</i>
+<</if>>
+<</widget>>
+
+/* 
+  Widget: showRemainingEffects
+  Lists all remaining effects on the player, or a placeholder if none.
+*/
+<<widget "showRemainingEffects">>
+<<if $remainingEffects and $remainingEffects.length > 0>>
+    <div class="effects-list">
+        <b>Remaining Effects:</b><br>
+        <<for _effect range $remainingEffects>>
+            • _effect<br>
+        <</for>>
+    </div>
+<<else>>
+    <i>No remaining effects.</i>
+<</if>>
+<</widget>>
+
+/* 
+  Widget: checkPlayerHealth
+  Checks if the player's health is zero or below, and jumps to GameOver if so.
+*/
+<<widget "checkPlayerHealth">>
+<<if $player.health <= 0>>
+    <<goto "GameOver">>
+<</if>>
+<</widget>>
+
+/* 
+  Widget: showInventory
+  Displays the player's inventory, or a placeholder if empty.
+*/
+<<widget "showInventory">>
+<<if $player.inventory and $player.inventory.length > 0>>
+    <div class="inventory-list">
+        <b>Inventory:</b><br>
+        <<for _item range $player.inventory>>
+            • _item<br>
+        <</for>>
+    </div>
+<<else>>
+    <i>Your inventory is empty.</i>
+<</if>>
+<</widget>>
+
+/* 
+  Widget: showActiveEffects
+  Lists all active effects on the player, or a placeholder if none.
+*/
+<<widget "showActiveEffects">>
+<<if $activeEffects and $activeEffects.length > 0>>
+    <div class="active-effects-list">
+        <b>Active Effects:</b><br>
+        <<for _effect range $activeEffects>>
+            • _effect<br>
+        <</for>>
+    </div>
+<<else>>
+    <i>No active effects.</i>
+<</if>>
+<</widget>>
+
+
+:: StoryScript [script]
+setup.initGame = function() {
+    State.variables.player = {
+        health: 100,
+        maxHealth: 100,
+        gold: 0,
+        inventory: []
+    };
+    State.variables.monsters = [
+        { name: "Shadow Wraith", health: 50, loot: "Spirit Essence", goldMin: 20, goldMax: 40 },
+        { name: "Forest Troll", health: 70, loot: "Troll Hide", goldMin: 30, goldMax: 60 },
+        { name: "Corrupted Wolf", health: 40, loot: "Wolf Fang", goldMin: 15, goldMax: 35 }
+    ];
+    State.variables.combatLog = [];
+};
+
+Macro.add('showInventory', {
+    handler() {
+        if (State.variables.player && State.variables.player.inventory.length > 0) {
+            let output = 'Your inventory:<br>';
+            State.variables.player.inventory.forEach(function(item) {
+                output += '• ' + item + '<br>';
+            });
+            this.output.append(output);
+        } else {
+            this.output.append('Your inventory is empty.');
+        }
+    }
+});
+
+:: StoryStylesheet [stylesheet]
+\:: StoryStylesheet [stylesheet]
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+#ui-bar {
+    background-color: #333;
+    color: #e0e0e0;
+}
+.passage {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #2a2a2a;
+    border: 1px solid #555;
+    border-radius: 5px;
+}
+a {
+    color: #00b7eb;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+#combat-log {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #3a3a3a;
+    border: 1px solid #666;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
